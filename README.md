@@ -34,9 +34,26 @@ Trained on NVIDIA V100 GPU.
 
 In addition, we include model accuracy of Actor dataset without using hop-normalization, as model shows higher accuracy in this setting.
 
+Some more interesting results coming soon!
+
+
+**ogbn-papers100M (large-scale dataset)**
+
+Improved model than mentioned in paper with extra FC layer.
+Please run ```python process_large.py``` in folder named large_data first to create data splits. 
+
+Then run ```./run_ogbn_papers.sh``` to train the model.
+
+Accuracy shown below is average over five runs with random seeds 0-4.
+
+| **Dataset**     | **4-hop Accuracy (%)** |
+| :-------------- | :---------------------: |
+| ogbn-papers100M | 68\.07                 |
 
 
 
 (Results may vary slightly with a different platform, e.g. use of different GPU. In such case, for best performance, some hyperparameter search may be required. Please refer to [PyTorch documentation](https://pytorch.org/docs/stable/notes/randomness.html) for more details.)
+
+Datasets and parts of preprocessing code were taken from [Geom-GCN](https://github.com/graphdml-uiuc-jlu/geom-gcn) and [GCNII](https://github.com/chennnM/GCNII) repositories. We thank the authors of these papers for sharing their code.
 
 

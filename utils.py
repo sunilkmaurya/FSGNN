@@ -10,10 +10,12 @@ from networkx.readwrite import json_graph
 import pdb
 sys.setrecursionlimit(99999)
 
-def accuracy(output, labels):
+def accuracy(output, labels, batch=False):
     preds = output.max(1)[1].type_as(labels)
     correct = preds.eq(labels).double()
     correct = correct.sum()
+    if batch == True:
+        return correct
     return correct / len(labels)
 
 def normalize(mx):
