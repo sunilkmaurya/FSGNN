@@ -1,5 +1,6 @@
 # FSGNN
-Implementation of FSGNN. For more details, please refer to [our paper](https://arxiv.org/abs/2105.07634)
+Implementation of FSGNN. For more details, please refer to [our paper](https://arxiv.org/abs/2105.07634).
+This work is further extended into our [second](https://arxiv.org/abs/2111.06748) paper.
 Experiments were conducted with following setup:  
 Pytorch: 1.6.0  
 Python: 3.8.5  
@@ -39,8 +40,9 @@ Some more interesting results coming soon!
 
 **ogbn-papers100M (large-scale dataset)**
 
-Improved model than mentioned in paper with extra FC layer.
-Please run ```python process_large.py``` in folder named large_data first to create data splits. 
+Improved model than mentioned in the paper with extra FC layer.
+Please run ```python process_large.py``` in folder named large_data first to create data splits. Pre-processed training splits (4-hops) are available for download [here](https://zenodo.org/record/5543949). Please download all pickle
+files and save them into large_data folder.
 
 Then run ```./run_ogbn_papers.sh``` to train the model.
 
