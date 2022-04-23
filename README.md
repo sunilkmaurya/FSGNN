@@ -35,8 +35,46 @@ Trained on NVIDIA V100 GPU.
 
 In addition, we include model accuracy of Actor dataset without using hop-normalization, as model shows higher accuracy in this setting.
 
-Some more interesting results coming soon!
+**Results with considering homophily/heterophily assumption in datasets**
 
+| **Dataset** | **3-hop Accuracy(%)** | **8-hop Accuracy(%)** |
+| :---------- | :-------------------: | :-------------------: |
+| Cora        | 87\.61                | 88\.23                |
+| Citeseer    | 77\.17                | 77\.35                |
+| Pubmed      | 89\.70                | 89\.78                |
+| Chameleon   | 78\.93                | 78\.95                |
+| Wisconsin   | 88\.24                | 87\.65                |
+| Texas       | 87\.57                | 87\.57                |
+| Cornell     | 87\.30                | 87\.30                |
+| Squirrel    | 73\.86                | 73\.94                |
+| Actor       | 35\.38                | 35\.62                |
+
+To get above results, please run
+
+```./run_classification_feat_type.sh```
+
+
+**Results with Sub Feature Setting**
+
+Sub_Feature setting is when a subset of hop features is selected to train the model.
+
+To get results with sum operation over hop features,
+
+```./run_sub_feature_sum.sh```
+
+To get results with concatenation operation over hop features,
+
+```./run_sub_feature_cat.sh```
+
+**Results with removing ReLU activation between the layers**
+
+To get results with sum operation over hop features,
+
+```./run_sub_feature_no_relu_sum.sh```
+
+To get results with concatenation operation over hop features,
+
+```./run_sub_feature_no_relu_cat.sh```
 
 **ogbn-papers100M (large-scale dataset)**
 

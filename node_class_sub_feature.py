@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from process import *
 from utils import *
-from model import *
+from model_feat_selection import *
 import uuid
 import pickle
 
@@ -24,12 +24,12 @@ parser.add_argument('--patience', type=int, default=100, help='Patience')
 parser.add_argument('--data', default='cora', help='dateset')
 parser.add_argument('--dev', type=int, default=0, help='device id')
 parser.add_argument('--layer_norm',type=int, default=1, help='layer norm')
-parser.add_argument('--w_att',type=float, default=0.0005, help='Weight decay scalar')
 parser.add_argument('--w_fc2',type=float, default=0.0005, help='Weight decay layer-2')
 parser.add_argument('--w_fc1',type=float, default=0.0005, help='Weight decay layer-1')
 parser.add_argument('--lr_fc',type=float, default=0.02, help='Learning rate 2 fully connected layers')
-parser.add_argument('--lr_att',type=float, default=0.02, help='Learning rate Scalar')
-parser.add_argument('--feat_type',type=str, default='all', help='Type of features to be used')
+parser.add_argument('--hop_idx', type=int, default=0, help='Select hop combinations')
+parser.add_argument('--is_relu', type=int, default=1, help='Non-linearity between layers')
+parser.add_argument('--agg_oper', type=str, default='cat', help='Aggregation operation for hop features')
 
 args = parser.parse_args()
 random.seed(args.seed)
@@ -37,13 +37,18 @@ np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 torch.cuda.manual_seed(args.seed)
 num_layer = args.layer
-feat_type = args.feat_type
+is_relu = bool(args.is_relu)
+
+#Dictionary stores various combinations of hops
+with open("hop_select.pickle","rb") as fopen:
+    dict_param_select = pickle.load(fopen)
+hop_select_param = dict_param_select[args.hop_idx]
 
 layer_norm = bool(int(args.layer_norm))
 print("==========================")
 print(f"Dataset: {args.data}")
 print(f"Dropout:{args.dropout}, layer_norm: {layer_norm}")
-print(f"w_att:{args.w_att}, w_fc2:{args.w_fc2}, w_fc1:{args.w_fc1}, lr_fc:{args.lr_fc}, lr_att:{args.lr_att}")
+print(f"w_fc2:{args.w_fc2}, w_fc1:{args.w_fc1}, lr_fc:{args.lr_fc}")
 
 
 cudaid = "cuda:"+str(args.dev)
@@ -54,7 +59,7 @@ checkpt_file = 'pretrained/'+uuid.uuid4().hex+'.pt'
 def train_step(model,optimizer,labels,list_mat,idx_train):
     model.train()
     optimizer.zero_grad()
-    output = model(list_mat, layer_norm)
+    output = model(list_mat, layer_norm, is_relu)
     acc_train = accuracy(output[idx_train], labels[idx_train].to(device))
     loss_train = F.nll_loss(output[idx_train], labels[idx_train].to(device))
     loss_train.backward()
@@ -65,7 +70,7 @@ def train_step(model,optimizer,labels,list_mat,idx_train):
 def validate_step(model,labels,list_mat,idx_val):
     model.eval()
     with torch.no_grad():
-        output = model(list_mat, layer_norm)
+        output = model(list_mat, layer_norm, is_relu)
         loss_val = F.nll_loss(output[idx_val], labels[idx_val].to(device))
         acc_val = accuracy(output[idx_val], labels[idx_val].to(device))
         return loss_val.item(),acc_val.item()
@@ -74,7 +79,7 @@ def test_step(model,labels,list_mat,idx_test):
     model.load_state_dict(torch.load(checkpt_file))
     model.eval()
     with torch.no_grad():
-        output = model(list_mat, layer_norm)
+        output = model(list_mat, layer_norm, is_relu)
         loss_test = F.nll_loss(output[idx_test], labels[idx_test].to(device))
         acc_test = accuracy(output[idx_test], labels[idx_test].to(device))
         #print(mask_val)
@@ -98,29 +103,20 @@ def train(datastr,splitstr):
         list_mat.append(no_loop_mat)
         list_mat.append(loop_mat)
 
-    # Select X and self-looped features 
-    if feat_type == "homophily":
-        select_idx = [0] + [2*ll for ll in range(1,num_layer+1)]
-        list_mat = [list_mat[ll] for ll in select_idx]
+    #Selecting hops features out of all
+    # For example, selecting X, AX, (A+I)^2X 
+    list_mat = [list_mat[hop_sel] for hop_sel in hop_select_param]
 
-    #Select X and no-loop features
-    elif feat_type == "heterophily":
-        select_idx = [0] + [2*ll-1 for ll in range(1,num_layer+1)]
-        list_mat = [list_mat[ll] for ll in select_idx]
-        
-    #Otherwise all hop features are selected
-    
     model = FSGNN(nfeat=num_features,
                 nlayers=len(list_mat),
                 nhidden=args.hidden,
                 nclass=num_labels,
-                dropout=args.dropout).to(device)
+                dropout=args.dropout,agg_oper=args.agg_oper).to(device)
 
 
     optimizer_sett = [
         {'params': model.fc2.parameters(), 'weight_decay': args.w_fc2, 'lr': args.lr_fc},
         {'params': model.fc1.parameters(), 'weight_decay': args.w_fc1, 'lr': args.lr_fc},
-        {'params': model.att, 'weight_decay': args.w_att, 'lr': args.lr_att},
     ]
 
     optimizer = optim.Adam(optimizer_sett)
