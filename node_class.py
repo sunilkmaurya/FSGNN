@@ -1,5 +1,6 @@
 from __future__ import division
 from __future__ import print_function
+import os
 import time
 import random
 import argparse
@@ -37,6 +38,9 @@ random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 torch.cuda.manual_seed(args.seed)
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+torch.use_deterministic_algorithms(True)
+torch.backends.cudnn.benchmark = True
 num_layer = args.layer
 feat_type = args.feat_type
 
