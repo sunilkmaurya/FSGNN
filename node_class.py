@@ -1,10 +1,12 @@
 from __future__ import division
 from __future__ import print_function
+import os
 import time
 import random
 import argparse
 import numpy as np
 import torch
+import torch_sparse
 import torch.nn.functional as F
 import torch.optim as optim
 from process import *
@@ -36,6 +38,9 @@ random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 torch.cuda.manual_seed(args.seed)
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+torch.use_deterministic_algorithms(True)
+torch.backends.cudnn.benchmark = True
 num_layer = args.layer
 feat_type = args.feat_type
 
@@ -85,16 +90,17 @@ def train(datastr,splitstr):
     adj, adj_i, features, labels, idx_train, idx_val, idx_test, num_features, num_labels = full_load_data(datastr,splitstr)
     features = features.to(device)
 
-    adj = adj.to(device)
-    adj_i = adj_i.to(device)
+    adj = adj.to(device).coalesce()
+    adj_i = adj_i.to(device).coalesce()
+
     list_mat = []
     list_mat.append(features)
     no_loop_mat = features
     loop_mat = features
 
     for ii in range(args.layer):
-        no_loop_mat = torch.spmm(adj, no_loop_mat)
-        loop_mat = torch.spmm(adj_i, loop_mat)
+        no_loop_mat = torch_sparse.spmm(adj.indices(), adj.values(), adj.shape[0], adj.shape[1], no_loop_mat)
+        loop_mat = torch_sparse.spmm(adj_i.indices(), adj_i.values(), adj_i.shape[0], adj_i.shape[1], loop_mat)
         list_mat.append(no_loop_mat)
         list_mat.append(loop_mat)
 
